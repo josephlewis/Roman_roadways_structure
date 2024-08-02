@@ -15,6 +15,29 @@ Getting Started
    * _06_roadways_critical_slopes.R_ produces mathematical slope gradient figures for the Roman roadways analysis
    * _07_roadways_empire_slopes.R_ produces summary tables and figures for Roman roadways across the Roman empire
 
+**Data**
+1. DEM
+  * _OS_50m_Wales_ - Ordnance Survey 50 metre Digital Elevation Model of Wales
+2. extent
+  * _roman_empire_ad_117.gpkg_ - Extent of the Roman empire.
+2. _RR_known.gpkg_ - 62 Known Roman roadways digitised from 'Roman frontiers in Wales and the Marches’
+
+**Output**
+1. tactical_simuation
+  * _simulated_routes_ - simulated routes produced via _01_tactical_sim.R_
+  * _simulated_routes_abc_ - fitted least-cost paths to the 62 simulated routes using the Bayesian hierarchical movement model
+2. _simulated_roads_ - fitted least-cost paths to the 62 known Roman roadways using the Bayesian hierarchical movement model
+3. _tables_
+  * tactical_simulation
+      * _sim_routes_abc_posterior_summary1_ - estimated b parameter for the 62 simulated routes
+      * _sim_routes_abc_posterior_summary2_ - estimated b bar parameter for population-level simulated routes
+  * simulated_roads
+      * _road_sims_posterior_summary_1_ - estimated b parameter for 62 known Roman roadways
+      * _sim_routes_abc_posterior_summary2_ - estimated b bar parameter for population-level Roman roadways across the Roman empire
+      * _road_sims_posterior_summary_3_ - Path Deviation Index for 62 known Roman roadways
+      * _road_sims_posterior_median_slope_gradient_ - mathematical slope gradients for 62 known Roman roadways
+     * road_sims_posterior_median_slope_gradient_max_ - Maximum mathematical slope gradient for 62 known Roman roadways
+    
 License
 ---------------
 CC-BY 3.0 unless otherwise stated (see Licenses.md)
