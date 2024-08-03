@@ -43,7 +43,12 @@ Getting Started
 
 **Analysis**
 
-Please note that running the Bayesian hierarchical movement model via _02_ABC_tactical_sim.R_ or _04_ABC_RR_known.R_ has a long processing time and high memory requirements. The calculation of 250,000 least-cost paths for each of the 62 simulated routes / known Roman roadways (15,500,000 least-cost paths in total) takes approximtely 4 days to complete when using 85 cores and ~50GB memory.
+Please note that running the Bayesian hierarchical movement model via _02_ABC_tactical_sim.R_ or _04_ABC_RR_known.R_ has a long processing time and high memory requirements. The calculation of 250,000 least-cost paths for each of the 62 simulated routes / known Roman roadways (15,500,000 least-cost paths in total) takes approximtely 4 days to complete when using 85 cores and ~50GB memory. 
+
+Fitted Bayesian hierarchical movement model to the 62 known Roman roads and simulated routes are available in the _Output_ folder.
+1. tactical_simuation
+  * _simulated_routes_abc_ - fitted least-cost paths to the 62 simulated routes using the Bayesian hierarchical movement model
+2. _simulated_roads_ - fitted least-cost paths to the 62 known Roman roadways using the Bayesian hierarchical movement model
     
 License
 ---------------
