@@ -40,6 +40,7 @@ Getting Started
 4. roadway_system
   *  _road_sims_posterior_median.gpkg_ - 62 least-cost paths based on the estimated median posterior b value for each Roman roadway in Wales
   *  tobler_routes.gpkg_ - 62 least-cost paths based on Tobler's Hiking Function (parameter b = 3.5)
+5. figures
 
 **Analysis**
 
