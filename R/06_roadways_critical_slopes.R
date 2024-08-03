@@ -21,6 +21,9 @@ road_sims_posterior <- do.call(rbind, road_sims_posterior)
 road_sims_posterior$road_indx <- rep(1:length(road_sims), each = no_post_rows)
 road_sims_posterior$road_indx <- factor(road_sims_posterior$road_indx)
 
+road_sims_posterior_lcp <- calculate_known_roads(road_post = road_sims_posterior, r = r, roads = roads)
+sf::st_write(road_sims_posterior_lcp, "./Output/roadway_system/road_sims_posterior.gpkg", append = FALSE)
+
 road_sims_posterior_median_b <- road_sims_posterior %>%
   group_by(road_indx) %>%
   summarise(p.b = median(p.b))
