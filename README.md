@@ -1,6 +1,6 @@
 # Process-Explicit Model Reveals Structure of Roman Roadways in the Roman Empire
 
-This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Process-Explicit Model Reveals Structure of Roman Roadways in the Roman Empire_" authored by Lewis, J.
+This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Process-Explicit Model Reveals Structure of Roman Roadways in the Roman Empire_" authored by **Lewis**, J.
 
 Getting Started
 ---------------
