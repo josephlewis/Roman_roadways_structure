@@ -37,7 +37,7 @@ calculate_tactical_sim_routes <- function(roads, values) {
 }
 
 slope_calc <- function(r, route, max_slope = NULL, neighbours = 8) {
-
+  
   route_pts <- origin_destination(route)
   route_pts_cells <- terra::cellFromXY(r, sf::st_coordinates(route_pts))
   route_pts_XY <- terra::xyFromCell(r, route_pts_cells)
@@ -140,35 +140,7 @@ abc <- function(input_data, df_vals, route, cf, ncores, spatial = TRUE, ...) {
 
 exp_cf <- function(x, y) {(1 * exp(-y * abs(x + 0.05))) / 3.6}
 
-exp_abc_cf <- function(x, y) {(1 * exp(-y[3] * abs(x + 0.05))) / 3.6}
-
-tobler_cf <- function(x) {(1 * exp(-3.5 * abs(x + 0.05))) / 3.6}
-
-range01 <- function(x, min = NULL, max = NULL){
-  
-  if(is.null(min)) { 
-    min <- min(x)
-  }
-  
-  if(is.null(max)) { 
-    max <- max(x)
-  }
-  
-  (x-min(x))/(max(x)-min(x))
-}
-
-origin_destination <- function(route) {
-  
-  route_pts <- sf::st_cast(route, "POINT")
-  
-  origin <- route_pts[1,]
-  destination <- route_pts[nrow(route_pts),]
-  
-  od <- rbind(origin, destination)
-  
-  return(od)
-  
-}
+cf <- function(x, y) {(1 * exp(-y * abs(x)))}
 
 calculate_posterior_cf <- function(road_sims_post) {
   
@@ -290,163 +262,19 @@ calculate_prediction_cf <- function(road_sims_post, ndraws = 100) {
   
 }
 
-calculate_slope_gradient <- function(road, r = r, max_slope = FALSE) { 
+critical_slope_to_b <- function(y, target_critical_slope) {
+  speed_vals <- cf(slope, y)
+  pace_vals <- 1 / speed_vals
+  height_gain_rate <- slope / pace_vals
+  critical_slope <- slope[which.max(height_gain_rate)]
   
-  slope_vals_df <- list()
-  
-  for(road_indx in 1:nrow(road)) {
-    
-    road2 <- road[road_indx,]
-    input_data <- slope_calc(r = r, route = road2)
-    
-    road2_pts <- sf::st_cast(road2, "POINT")
-    road2_pts_cells <- terra::cellFromXY(object = leastcostpath::rasterise(input_data[[1]]), xy = sf::st_coordinates(road2_pts))
-    
-    road2_pts_cells2 <- cbind(from = road2_pts_cells[1:(length(road2_pts_cells)-1)],
-                              to = road2_pts_cells[2:length(road2_pts_cells)])
-    
-    slope_vals <- input_data[[1]]$conductanceMatrix[road2_pts_cells2]
-    
-    slope_vals_df[[road_indx]] <- data.frame(road_indx = road_indx,
-                                             slope_value = abs(slope_vals))
-    
-  }
-  slope_vals_df2 <- do.call(rbind, slope_vals_df)
-  
-  if(max_slope == TRUE) { 
-    slope_vals_df2 <- slope_vals_df2 %>%
-      group_by(road_indx) %>%
-      summarise(max = max(slope_value))
-  }
-  
-  return(slope_vals_df2)
+  return(critical_slope - target_critical_slope)
 }
 
-calculate_known_roads <- function(road_post, roads, r = r) {
-  
-  roads_df <- list()
-  
-  for(road_indx in 1:length(unique(road_post$road_indx))) {
-    
-    print(road_indx)
-    
-    road_post2 <- road_post[road_post$road_indx == road_indx,]
-    
-    roads_list <- list()
-    
-    for(sim_indx in 1:nrow(road_post2)) {
-      
-      b <- road_post2[sim_indx,]$p.b
-      
-      road_od <- origin_destination(roads[roads$road_indx == road_indx,])
-      
-      input_data <- slope_calc(r = r, route = roads[roads$road_indx == road_indx,], neighbours = 8)
-      roads_list[[sim_indx]] <- calculate_lcp(input_data = input_data,
-                                                   param_value = b,
-                                                   hyp_roads_od = road_od)
-      
-    }
-    
-    roads_df[[road_indx]] <- do.call(rbind, roads_list)
-    
-  }
-  
-  roads_df <- do.call(rbind, roads_df)
-  roads_df$type <- "Known"
-  
-  return(roads_df)
-  
-}
-
-calculate_lcp <- function(input_data, param_value, hyp_roads_od) {
-  
-  lcps <- list()
-  
-  for(b_indx in 1:length(param_value)) { 
-    
-    input_data2 <- input_data
-    
-    cf = function(x,y) {(1 * exp(-y * abs(x + 0.05))) / 3.6}
-    
-    input_data2[[1]]$conductanceMatrix[input_data2[[3]]] <- cf(x =  input_data2[[1]]$conductanceMatrix[input_data2[[3]]], y = param_value[b_indx])
-    
-    input_data2[[1]]$conductanceMatrix[input_data2[[3]]] <-   input_data2[[1]]$conductanceMatrix[input_data2[[3]]] / input_data2[[2]]
-    
-    lcps[[b_indx]] <- leastcostpath::create_lcp(x = input_data2[[1]], origin = hyp_roads_od[1,], destination = hyp_roads_od[2,], cost_distance = TRUE)
-    sf::st_crs(lcps[[b_indx]]) <- sf::st_crs(hyp_roads_od)
-    
-    lcps[[b_indx]]$sim_indx <- b_indx
-    lcps[[b_indx]]$b <- param_value[b_indx]
-    lcps[[b_indx]]$origin <- hyp_roads_od$ID[1]
-    lcps[[b_indx]]$destination <- hyp_roads_od$ID[2]
-    
-  }
-  
-  lcps <- do.call(rbind, lcps)
-  
-  return(lcps)
-  
-}
-
-calculate_population_critical_slope <- function(road_sims_posterior, n_draws) { 
-  
-  population_level_critical_slope_df <- data.frame(b_value = NA,
-                                                   critical_slope_value = rep(NA, nrow(road_sims_posterior)))
-  
-  for(i in 1:nrow(road_sims_posterior)) {
-    
-    population_level_b <- truncnorm::rtruncnorm(n = n_draws, a = 0, 
-                                                mean = road_sims_posterior$p.b_mean[i],
-                                                sd = road_sims_posterior$p.b_sd[i])
-    
-    population_level_b <- mean(population_level_b)
-    
-    population_level_cf = function(x, y) {(1 * exp(-y * abs(x + 0.05))) / 3.6}
-    
-    population_level_df <- data.frame(road_indx = 1, p.b = population_level_b)
-    
-    population_level_critical_slope_df$b_value[i] <- population_level_b
-    population_level_critical_slope_df$critical_slope_value[i] <- calculate_critical_slope(population_level_df)$critical_slope
-    
-  }
-  
-  return(population_level_critical_slope_df)
-}
-
-calculate_critical_slope <- function(road_sims_post) { 
-  
-  critical_slope_vals <- list()
-  
-  for(road_indx in unique(road_sims_post$road_indx)) {
-    
-    road_sims_post2 <- road_sims_post[road_sims_post$road_indx == road_indx,]
-    
-    slope <- seq(-0.9, 0.9, 0.01)
-    
-    individual_critical_slope_vals <- list()
-    
-    for(sim_indx in 1:nrow(road_sims_post2)) { 
-      
-      cf = function(x,y) {(1 * exp(-road_sims_post2$p.b[sim_indx] * abs(x + 0.05))) / 3.6}
-      
-      speed_vals <- cf(slope)
-      pace_vals <- 1/speed_vals
-      
-      height_gain_rate <- slope / pace_vals
-      critical_slope <- slope[which.max(height_gain_rate)]
-      
-      individual_critical_slope_vals[[sim_indx]] <- data.frame(road_indx = as.numeric(road_indx), sim_indx = sim_indx, critical_slope = critical_slope)
-      
-    }
-    
-    individual_critical_slope_vals <- do.call(rbind, individual_critical_slope_vals)
-    
-    critical_slope_vals[[road_indx]] <- individual_critical_slope_vals
-    
-  }
-  
-  critical_slope_vals2 <- do.call(rbind, critical_slope_vals)
-  
-  return(critical_slope_vals2)
-  
+b_to_critical_slope <- function(slope, y) {
+  speed_vals <- cf(slope, y)
+  pace_vals <- 1 / speed_vals
+  height_gain_rate <- slope / pace_vals
+  critical_slope <- slope[which.max(height_gain_rate)]
+  return(critical_slope)
 }
