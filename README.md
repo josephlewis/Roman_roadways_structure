@@ -1,6 +1,6 @@
-# Process-Explicit Model Reveals Structure of Roman Roadways in the Roman Empire
+# Process-explicit model reveals variability in the influence of slope gradient on roads in the Roman empire
 
-This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Process-Explicit Model Reveals Structure of Roman Roadways in the Roman Empire_" authored by **Lewis**, J.
+This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Process-explicit model reveals variability in the influence of slope gradient on roads in the Roman empire_" authored by **Lewis**, J.
 
 Getting Started
 ---------------
@@ -12,8 +12,8 @@ Getting Started
    * _03_analyse_ABC_tactical_sim.R_ produces summary tables and figures for the tactical simulation
    * _04_ABC_RR_known.R_ fits the Bayesian hierarchical movement model to the 62 known Roman roadways in Wales
    * _05_analyse_ABC_RR_known.R_ produces summary tables and figures for the Roman roadways analysis
-   * _06_roadways_critical_slopes.R_ produces mathematical slope gradient figures for the Roman roadways analysis
-   * _07_roadways_empire_slopes.R_ produces summary tables and figures for Roman roadways across the Roman empire
+   * _06_critical_slope_gradient_to_b_ infers parameter b values from empirical slope gradients of Roman roads across the Roman empire
+   * _07_b_critical_gradient_slope.R_ produces plot to show relationship between parameter b and critical slope gradient (Extended Data Figure 1)
 
 **Data**
 1. DEM
@@ -35,11 +35,9 @@ Getting Started
       * _road_sims_posterior_summary_1.csv_ - estimated b parameter for 62 known Roman roadways
       * _sim_routes_abc_posterior_summary2.csv_ - estimated b bar parameter for population-level Roman roadways across the Roman empire
       * _road_sims_posterior_summary_3.csv_ - Path Deviation Index for 62 known Roman roadways
-      * _road_sims_posterior_median_slope_gradient.csv_ - mathematical slope gradients for 62 known Roman roadways
-     * road_sims_posterior_median_slope_gradient_max.csv_ - Maximum mathematical slope gradient for 62 known Roman roadways
 4. roadway_system
+  *  _road_sims_posterior.gpkg_ - 15,500 least-cost paths based on the estimated posterior b value for each Roman roadway in Wales (250 accepted parameter values * 62 = 15,500)
   *  _road_sims_posterior_median.gpkg_ - 62 least-cost paths based on the estimated median posterior b value for each Roman roadway in Wales
-  *  tobler_routes.gpkg_ - 62 least-cost paths based on Tobler's Hiking Function (parameter b = 3.5)
 5. figures
 
 **Analysis**
