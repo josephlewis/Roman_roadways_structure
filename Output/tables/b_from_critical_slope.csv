@@ -1,13 +1,3 @@
 "scenario","critical_slope_value","estimated_b_value"
 "loaded wheeled vehicle drawn by two mules",0.09,11.1
 "traversed by a wheeled vehicle directly",0.15,6.7
-"road connecting two forts in Wales",0.25,4
-"Roman Britain",0.125,8
-"Italy Low",0.07,14.3
-"Italy High",0.1,10
-"Hispania Low",0.06,16.7
-"Hispania High",0.08,12.5
-"Germany",0.08,12.5
-"Scotland Low",0.167,6
-"Scotland High",0.25,4
-"Judea",0.0099,101
