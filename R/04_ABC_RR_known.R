@@ -1,11 +1,6 @@
 set.seed(NULL)
 set.seed(1)
 
-ncores <- 85
-nsims <- 250000
-
-neigh <- 8
-
 r <- terra::rast("./Data/DEM/OS_50m_Wales.tif")
 roads <- sf::st_read("./Data/RR_known.gpkg")
 sf::st_geometry(roads) <- "geometry"

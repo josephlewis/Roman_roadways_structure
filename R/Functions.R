@@ -140,6 +140,8 @@ abc <- function(input_data, df_vals, route, cf, ncores, spatial = TRUE, ...) {
 
 exp_cf <- function(x, y) {(1 * exp(-y * abs(x + 0.05))) / 3.6}
 
+exp_abc_cf <- function(x, y) {(1 * exp(-y[3] * abs(x + 0.05))) / 3.6}
+
 cf <- function(x, y) {(1 * exp(-y * abs(x)))}
 
 calculate_posterior_cf <- function(road_sims_post) {
@@ -277,4 +279,116 @@ b_to_critical_slope <- function(slope, y) {
   height_gain_rate <- slope / pace_vals
   critical_slope <- slope[which.max(height_gain_rate)]
   return(critical_slope)
+}
+
+calculate_known_roads <- function(road_post, roads, r = r) {
+  
+  roads_df <- list()
+  
+  for(road_indx in 1:length(unique(road_post$road_indx))) {
+    
+    print(road_indx)
+    
+    road_post2 <- road_post[road_post$road_indx == road_indx,]
+    
+    roads_list <- list()
+    
+    for(sim_indx in 1:nrow(road_post2)) {
+      
+      b <- road_post2[sim_indx,]$p.b
+      
+      road_od <- origin_destination(roads[roads$road_indx == road_indx,])
+      
+      input_data <- slope_calc(r = r, route = roads[roads$road_indx == road_indx,], neighbours = 8)
+      roads_list[[sim_indx]] <- calculate_lcp(input_data = input_data,
+                                              param_value = b,
+                                              hyp_roads_od = road_od)
+      
+    }
+    
+    roads_df[[road_indx]] <- do.call(rbind, roads_list)
+    
+  }
+  
+  roads_df <- do.call(rbind, roads_df)
+  roads_df$type <- "Known"
+  
+  return(roads_df)
+  
+}
+
+origin_destination <- function(route) {
+  
+  route_pts <- sf::st_cast(route, "POINT")
+  
+  origin <- route_pts[1,]
+  destination <- route_pts[nrow(route_pts),]
+  
+  od <- rbind(origin, destination)
+  
+  return(od)
+  
+}
+
+calculate_lcp <- function(input_data, param_value, hyp_roads_od) {
+  
+  lcps <- list()
+  
+  for(b_indx in 1:length(param_value)) { 
+    
+    input_data2 <- input_data
+    
+    cf = function(x,y) {(1 * exp(-y * abs(x + 0.05))) / 3.6}
+    
+    input_data2[[1]]$conductanceMatrix[input_data2[[3]]] <- cf(x =  input_data2[[1]]$conductanceMatrix[input_data2[[3]]], y = param_value[b_indx])
+    
+    input_data2[[1]]$conductanceMatrix[input_data2[[3]]] <-   input_data2[[1]]$conductanceMatrix[input_data2[[3]]] / input_data2[[2]]
+    
+    lcps[[b_indx]] <- leastcostpath::create_lcp(x = input_data2[[1]], origin = hyp_roads_od[1,], destination = hyp_roads_od[2,], cost_distance = TRUE)
+    sf::st_crs(lcps[[b_indx]]) <- sf::st_crs(hyp_roads_od)
+    
+    lcps[[b_indx]]$sim_indx <- b_indx
+    lcps[[b_indx]]$b <- param_value[b_indx]
+    lcps[[b_indx]]$origin <- hyp_roads_od$ID[1]
+    lcps[[b_indx]]$destination <- hyp_roads_od$ID[2]
+    
+  }
+  
+  lcps <- do.call(rbind, lcps)
+  
+  return(lcps)
+  
+}
+
+calculate_sinuosity <- function(line) {
+  
+  vals <- c()
+  
+  for(i in 1:nrow(line)) {
+    
+    print(i)
+    
+    line_length <- st_length(line[i,])
+    
+    # Extract coordinates to get start and end points
+    coords <- st_coordinates(line[i,])
+    start_point <- coords[1, ]                 # First point
+    end_point <- coords[nrow(coords), ]        # Last point
+    
+    # Calculate the straight-line distance between start and end points
+    straight_distance <- st_distance(
+      st_sfc(st_point(start_point), crs = st_crs(line)),
+      st_sfc(st_point(end_point), crs = st_crs(line))
+    )
+    
+    # Avoid division by zero
+    if (as.numeric(straight_distance) == 0) {
+      return(NA)
+    }
+    
+    vals[i] <- as.numeric(line_length/straight_distance)
+    
+  }
+  
+  return(vals)
 }

@@ -1,11 +1,6 @@
 set.seed(NULL)
 set.seed(1)
 
-ncores <- 85
-nsims <- 250000
-
-neigh <- 8
-
 r <- terra::rast("./Data/DEM/OS_50m_Wales.tif")
 tactical_sim_routes <- readRDS("./Output/tactical_simulation/simulated_routes/tactical_simulation_routes.rds")
 
