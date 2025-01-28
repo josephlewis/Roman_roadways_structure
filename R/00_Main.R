@@ -25,6 +25,8 @@ source("./R/Functions.R")
 neigh <- 8
 ncores <- 40
 nsims <- 250000
+# number of accepted values in the posterior. This should be less than nsims, i.e. the total number of values to simulate from.
+no_post_rows <- 250
 
 #############################
 #### TACTICAL SIMULATION ####

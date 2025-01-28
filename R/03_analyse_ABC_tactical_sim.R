@@ -17,7 +17,6 @@ sim_routes_abc_list <- list.files("./Output/tactical_simulation/simulated_routes
 sim_routes_abc_list <- gtools::mixedsort(sim_routes_abc_list)
 sim_routes_abc <- lapply(sim_routes_abc_list, readRDS)
 
-no_post_rows <- 250
 tol <- no_post_rows/nrow(sim_routes_abc[[1]])
 
 sim_routes_abc <- lapply(sim_routes_abc, function(x) { x[order(x$pdi),]})

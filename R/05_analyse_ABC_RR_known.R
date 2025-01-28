@@ -11,7 +11,6 @@ sim_list <- gtools::mixedsort(sim_list)
 
 road_sims <- lapply(sim_list, readRDS)
 
-no_post_rows <- 250
 tol <- no_post_rows/nrow(road_sims[[1]])
 
 road_sims <- lapply(road_sims, function(x) { x[order(x$max_dist),]})
