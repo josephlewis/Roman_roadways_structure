@@ -27,9 +27,9 @@ sim_routes_abc_posterior <- do.call(rbind, sim_routes_abc_posterior)
 
 # # calculate least-cost paths using all posterior b values for each road
 sim_routes_abc_posterior_lcp <- calculate_known_roads(road_post = sim_routes_abc_posterior, r = r, roads = sim_roads)
-road_sims_posterior_lcp$road_indx <- rep(1:length(road_sims), each = no_post_rows)
-road_sims_posterior_lcp$sim_indx <- rep(1:length(road_sims), by = no_post_rows)
-sf::st_write(road_sims_posterior_lcp, "./Output/tactical_simulation/simulated_routes_sf/tactical_sims_posterior.gpkg", append = FALSE)
+sim_routes_abc_posterior_lcp$road_indx <- rep(1:length(unique(sim_roads$road_indx)), each = no_post_rows)
+sim_routes_abc_posterior_lcp$sim_indx <- rep(1:length(unique(sim_roads$road_indx)), by = no_post_rows)
+sf::st_write(sim_routes_abc_posterior_lcp, "./Output/tactical_simulation/simulated_routes_sf/tactical_sims_posterior.gpkg", append = FALSE)
 
 sim_routes_abc_posterior_summary1 <- sim_routes_abc_posterior %>%
   group_by(road_indx) %>%
