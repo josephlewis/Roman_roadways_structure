@@ -50,6 +50,9 @@ For testing purposes, the processing time and memory requirements can be reduced
 
 * _nsims_ - total number of simulated per Roman road
 * _no_post_rows_ - Total number of accepted parameter to create the posterior distribution
+
+Note that _nsims_ value should be greater than the _no_post_rows_ value
+
 License
 ---------------
 CC-BY 3.0 unless otherwise stated (see Licenses.md)
