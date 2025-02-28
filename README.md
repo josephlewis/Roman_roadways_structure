@@ -1,6 +1,8 @@
-# Process-explicit model reveals variability in the influence of slope gradient on roads in the Roman empire
+# Generative inference model reveals motivations for road construction in past societies
 
-This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Process-explicit model reveals variability in the influence of slope gradient on roads in the Roman empire_" authored by **Lewis**, J and Crema, E.R.
+
+This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Generative inference model reveals motivations for road construction in past societies
+_" authored by **Lewis**, J and Crema, E.R.
 
 Getting Started
 ---------------
