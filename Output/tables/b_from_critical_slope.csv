@@ -1,3 +1,5 @@
 "scenario","critical_slope_value","estimated_b_value"
 "loaded wheeled vehicle drawn by two mules",0.09,11.1
 "traversed by a wheeled vehicle directly",0.15,6.7
+"average gradient in Scorpions' Ascent Roman road",0.18,5.6
+"Average gradient surrounding Scorpions' Ascent Roman road",0.36,2.8

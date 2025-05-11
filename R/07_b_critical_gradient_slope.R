@@ -3,8 +3,8 @@ set.seed(1)
 
 slope <- seq(-0.9, 0.9, 1e-6)
 
-b_critical_slope_df <- data.frame(scenario = c("loaded wheeled vehicle drawn by two mules", "traversed by a wheeled vehicle directly"),
-                                  critical_slope_value = c(0.09, 0.15),
+b_critical_slope_df <- data.frame(scenario = c("loaded wheeled vehicle drawn by two mules", "traversed by a wheeled vehicle directly", "average gradient in Scorpions' Ascent Roman road", "Average gradient surrounding Scorpions' Ascent Roman road"),
+                                  critical_slope_value = c(0.09, 0.15, 0.18, 0.36),
                                   estimated_b_value = NA)
 
 for(i in 1:nrow(b_critical_slope_df)) { 

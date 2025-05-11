@@ -1,6 +1,21 @@
 set.seed(NULL)
 set.seed(1)
 
+r <- terra::rast("./Data/DEM/OS_50m_Wales.tif")
+roads <- sf::st_read("./Data/RR_known.gpkg")
+sf::st_geometry(roads) <- "geometry"
+
+roads_terrain <- data.frame(road_indx = rep(NA, nrow(roads)), 
+                            TRI_median = NA,
+                            TRI_sd = NA)
+
+for(roads_indx in 1:nrow(roads_terrain)) { 
+  dem_vals <- terra::values(terra::terrain(x = terra::crop(r, sf::st_buffer(roads[roads_indx,], dist = 1000)), v = "TRI"), mat = FALSE)
+  roads_terrain$road_indx[roads_indx] <- roads_indx
+  roads_terrain$TRI_median[roads_indx] <- median(dem_vals, na.rm = TRUE)
+  roads_terrain$TRI_sd[roads_indx] <- sd(dem_vals, na.rm = TRUE)
+}
+
 road_sims_posterior <- sf::st_read("./Output/roadway_system/road_sims_posterior.gpkg")
 
 road_sims_posterior$sinuosity <- calculate_sinuosity(line = road_sims_posterior)
@@ -23,7 +38,8 @@ ggplot2::ggsave(plot_b_sinuosity1, filename = "./Output/figures/road_sims_post_b
 road_sims_posterior_b_sinuosity_median <- road_sims_posterior %>%
   sf::st_drop_geometry() %>%
   group_by(road_indx, road_indx2) %>%
-  summarise(sinuosity = median(sinuosity),
+  summarise(sinuosity_sd = sd(sinuosity), 
+            sinuosity = median(sinuosity),
             min_b = min(b),
             max_b = max(b),
             low = quantile(b, 0.025),
@@ -37,7 +53,10 @@ road_sims_posterior_b_sinuosity_median <- road_sims_posterior %>%
                                min_b > 6.7 ~ "Wheeled vehicle can ascend/descend",
                                min_b > 6.7 & max_b <= 11.1 ~ "Wheeled vehicle can ascend/descend directly",
                                min_b > 11.1 ~ "Loaded wheeled vehicle drawn by two mules can ascend/descend directly",
-                               TRUE ~ "Uncertain"))
+                               TRUE ~ "Uncertain")) %>%
+  left_join(roads_terrain) %>%
+  mutate(TRI_median = TRI_median/1000,
+         TRI_sd = TRI_sd/1000)
 
 table(road_sims_posterior_b_sinuosity_median$quadrant)
 round(table(road_sims_posterior_b_sinuosity_median$quadrant)/nrow(road_sims_posterior_b_sinuosity_median)*100, 2)
@@ -57,14 +76,14 @@ road_sims_posterior_b_sinuosity_median %>%
             median = round(median(sinuosity), 2),
             mean = round(mean(sinuosity), 2))
 
-lm1 <- summary(lm(sinuosity ~ b, data = road_sims_posterior_b_sinuosity_median))
-lm2 <- summary(lm(sinuosity ~ b, data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",]))
+lm1 <- summary(lm(sinuosity ~ b + TRI_median, data = road_sims_posterior_b_sinuosity_median))
+lm2 <- summary(lm(sinuosity ~ b + + TRI_median, data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",]))
 
-lm_bayes1 <- brms::brm(formula = sinuosity ~ b, data = road_sims_posterior_b_sinuosity_median, family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
-lm_bayes2 <- brms::brm(formula = sinuosity ~ b, data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",], family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
+lm_bayes1 <- brms::brm(formula = sinuosity ~ b + TRI_median, data = road_sims_posterior_b_sinuosity_median, family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
+lm_bayes2 <- brms::brm(formula = sinuosity ~ b + TRI_median, data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",], family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
 
-lm_bayes3 <- brms::brm(formula = sinuosity ~ me(x = b, sdx = b_sd), data = road_sims_posterior_b_sinuosity_median, family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
-lm_bayes4 <- brms::brm(formula = sinuosity ~ me(x = b, sdx = b_sd), data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",], family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
+lm_bayes3 <- brms::brm(formula = sinuosity ~ me(x = b, sdx = b_sd) + TRI_median, data = road_sims_posterior_b_sinuosity_median, family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
+lm_bayes4 <- brms::brm(formula = sinuosity ~ me(x = b, sdx = b_sd) + TRI_median, data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",], family = "gaussian", iter = 10000, control=list(adapt_delta=0.99, max_treedepth = 12))
 
 brms::bayes_R2(lm_bayes1)
 brms::bayes_R2(lm_bayes2)
@@ -79,20 +98,22 @@ fixef(lm_bayes3)
 fixef(lm_bayes4)
 
 lm_bayes1_predict <- lm_bayes1 %>%
-  tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1)), ndraws = 5000)
+  tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1),
+                             TRI_median = mean(road_sims_posterior_b_sinuosity_median$TRI_median)))
 
 lm_bayes2_predict <- lm_bayes2 %>%
-  tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1)), ndraws = 5000)
+  tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1),
+                                                  TRI_median = mean(road_sims_posterior_b_sinuosity_median$TRI_median)))
 
 lm_bayes3_predict <- lm_bayes3 %>%
   tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1),
-                                                  b_sd = mean(road_sims_posterior_b_sinuosity_median$b_sd)),
-                             ndraws = 5000)
+                                                  b_sd = mean(road_sims_posterior_b_sinuosity_median$b_sd),
+                                                  TRI_median = mean(road_sims_posterior_b_sinuosity_median$TRI_median)))
 
 lm_bayes4_predict <- lm_bayes4 %>%
   tidybayes::add_epred_draws(newdata = data.frame(b = seq(0, 40, 0.1),
-                                                  b_sd = mean(road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",]$b_sd)),
-                             ndraws = 5000)
+                                                  b_sd = mean(road_sims_posterior_b_sinuosity_median$b_sd),
+                                                  TRI_median = mean(road_sims_posterior_b_sinuosity_median$TRI_median)))
 
 road_sims_posterior_b_sinuosity_median$quadrant <- factor(road_sims_posterior_b_sinuosity_median$quadrant, levels = (c("Wheeled vehicles difficult to ascend/descend directly", "Wheeled vehicle can ascend/descend directly", "Loaded wheeled vehicle drawn by two mules can ascend/descend directly")))
 
@@ -160,7 +181,7 @@ plot_b_sinuosity4 <- ggplot() +
   geom_smooth(data = road_sims_posterior_b_sinuosity_median, aes(x = b, y = sinuosity), method = "lm", colour = "black", fill = "grey85") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline, aes(xintercept = value), linetype = "dashed") +
 geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx)) +
-  annotate("text", x=35, y=1.01, label = paste0("R^2 = ", round(lm1$r.squared, 2), ", p.val < 0.001"), size = 2)  +
+  annotate("text", x=35, y=1.01, label = paste0("R^2 = ", round(lm1$adj.r.squared, 2), ", p.val < 0.001"), size = 2)  +
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
   theme_clean() + 
@@ -173,7 +194,7 @@ plot_b_sinuosity4a <- ggplot() +
   geom_smooth(data = road_sims_posterior_b_sinuosity_median, aes(x = b, y = sinuosity), method = "lm", colour = "black", fill = "grey85") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline, aes(xintercept = value), linetype = "dashed") +
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx), size = 7) +
-  annotate("text", x=32, y=1.01, label = paste0("R^2 = ", round(lm1$r.squared, 2), ", p.val < 0.001"), size = 4)  +
+  annotate("text", x=32, y=1.01, label = paste0("R^2 = ", round(lm1$adj.r.squared, 2), ", p.val < 0.001"), size = 4)  +
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
   theme_clean() + 
@@ -188,7 +209,7 @@ plot_b_sinuosity_bayesian_4a <- ggplot() +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline, aes(xintercept = value), linetype = "dashed") +
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx), size = 7) +
-  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes1)[2], 3), " [", round(fixef(lm_bayes1)[6], 3), " - ", round(fixef(lm_bayes1)[8], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes1)[,1], 3), " [", round(brms::bayes_R2(lm_bayes1)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes1)[,4], 3), "]"), size = 4)  +
+  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes1)[2], 3), " [", round(fixef(lm_bayes1)[8], 3), " - ", round(fixef(lm_bayes1)[11], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes1)[,1], 3), " [", round(brms::bayes_R2(lm_bayes1)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes1)[,4], 3), "]"), size = 4)  +
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   theme_clean() + 
@@ -242,7 +263,7 @@ plot_b_sinuosity4c <- ggplot(road_sims_posterior_b_sinuosity_median[road_sims_po
   geom_smooth(method = "lm", colour = "black", fill = "grey85") + 
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline[road_sims_posterior_b_sinuosity_median_vline$value %in% c(6.7),], aes(xintercept = value), linetype = "dashed") + 
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx)) + 
-  annotate("text", x=32, y=1.01, label = paste0("R^2 = ", round(lm2$r.squared, 2), ", p.val < 0.001"), size = 2)  +
+  annotate("text", x=32, y=1.01, label = paste0("R^2 = ", round(lm2$adj.r.squared, 2), ", p.val < 0.001"), size = 2)  +
   scale_colour_manual(values = c("#e41a1c", "#377eb8")) + 
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
@@ -258,7 +279,7 @@ plot_b_sinuosity_bayesian_4b <- ggplot() +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline[road_sims_posterior_b_sinuosity_median_vline$value %in% c(0, 6.7),], aes(xintercept = value), linetype = "dashed") + 
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx), size = 7) + 
-  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes2)[2], 3), " [", round(fixef(lm_bayes2)[6], 3), " - ", round(fixef(lm_bayes2)[8], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes2)[,1], 3), " [", round(brms::bayes_R2(lm_bayes2)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes2)[,4], 3), "]"), size = 4) + 
+  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes2)[2], 3), " [", round(fixef(lm_bayes2)[8], 3), " - ", round(fixef(lm_bayes2)[11], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes2)[,1], 3), " [", round(brms::bayes_R2(lm_bayes2)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes2)[,4], 3), "]"), size = 4) + 
   scale_colour_manual(values = c("#F8766D", "#619CFF")) + 
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   theme_clean() + 
@@ -275,7 +296,7 @@ plot_b_sinuosity_bayesian_4c <- ggplot() +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline, aes(xintercept = value), linetype = "dashed") +
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx), size = 7) +
-  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes3)[2], 3), " [", round(fixef(lm_bayes3)[6], 3), " - ", round(fixef(lm_bayes3)[8], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes3)[,1], 3), " [", round(brms::bayes_R2(lm_bayes3)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes3)[,4], 3), "]"), size = 4)  +
+  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes3)[3], 3), " [", round(fixef(lm_bayes3)[9], 3), " - ", round(fixef(lm_bayes3)[12], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes3)[,1], 3), " [", round(brms::bayes_R2(lm_bayes3)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes3)[,4], 3), "]"), size = 4)  +
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   theme_clean() + 
@@ -290,7 +311,7 @@ plot_b_sinuosity_bayesian_4d <- ggplot() +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL, fill = "Credible Interval") +
   geom_vline(data = road_sims_posterior_b_sinuosity_median_vline[road_sims_posterior_b_sinuosity_median_vline$value %in% c(0, 6.7),], aes(xintercept = value), linetype = "dashed") + 
   geom_text(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$road_indx %in% c(17, 20, 43),], aes(x = b, y = sinuosity, label = road_indx), size = 7) + 
-  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes4)[2], 3), " [", round(fixef(lm_bayes4)[6], 3), " - ", round(fixef(lm_bayes4)[8], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes4)[,1], 3), " [", round(brms::bayes_R2(lm_bayes4)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes4)[,4], 3), "]"), size = 4) + 
+  annotate("text", x=30, y=1.01, label = paste0("b = ", round(fixef(lm_bayes4)[3], 3), " [", round(fixef(lm_bayes4)[9], 3), " - ", round(fixef(lm_bayes4)[12], 3), "]; ", "R^2 = ", round(brms::bayes_R2(lm_bayes4)[,1], 3), " [", round(brms::bayes_R2(lm_bayes4)[,3], 3), " - ", round(brms::bayes_R2(lm_bayes4)[,4], 3), "]"), size = 4) + 
   scale_colour_manual(values = c("#F8766D", "#619CFF")) + 
   scale_x_continuous(breaks = seq(0, 40, 5)) +
   theme_clean() + 
@@ -339,13 +360,13 @@ plot_b_sinuosity5 <- ggplot() +
   geom_rect(aes(xmin = 6.7, xmax = 42, ymin = 1, ymax = 1.25), fill = NA, colour = "white") +
   geom_rect(aes(xmin = 6.7, xmax = 42, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") +
   geom_point(data = road_sims_posterior_b_sinuosity_median, aes(x = b, y = sinuosity, colour = quadrant), size = 3.5, alpha = 0.5) +
-  geom_textcurve(aes(x = 3, y = 1.5, xend = 3, yend = 1.11), arrow = arrow(length = unit(0.03, "npc")), angle = 180, label = "                         ", size = 5, fontface = "italic")  +
-  annotate(geom = "text", x=3.1, y= 1.305, label="Barriers to\nmovement\nother than\nslope gradient\novercome", colour = "black", size = 5, fontface = 'italic') +
-  geom_textcurve(aes(x = 7, y = 1.45, xend = 37, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 0, label = "Roads better facilitate wheeled vehicles", size = 5, fontface = "italic")  +
-  geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 135, label = "Economic motivation", size = 5, fontface = "italic")  +
-  geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.5, label = "Political motivation", size = 5, fontface = "italic")  +
-  geom_textcurve(aes(x = 37.5, y = 1.35, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "                           ", size = 5, fontface = "italic")  +
-  annotate(geom = "text", x=37.5, y= 1.2, label="Increase in\ncost of\nconstruction\nand required\npolitical impetus", colour = "black", size = 5, fontface = 'italic') +
+  # geom_textcurve(aes(x = 3, y = 1.5, xend = 3, yend = 1.11), arrow = arrow(length = unit(0.03, "npc")), angle = 180, label = "                         ", size = 5, fontface = "italic")  +
+  # annotate(geom = "text", x=3.1, y= 1.305, label="Barriers to\nmovement\nother than\nslope gradient\novercome", colour = "black", size = 5, fontface = 'italic') +
+  geom_textcurve(aes(x = 7, y = 1.45, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 0, label = "Roads more readily facilitate wheeled vehicles", size = 5, fontface = "italic")  +
+  # geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 135, label = "Economic motivation", size = 5, fontface = "italic")  +
+  # geom_textcurve(aes(x = 7, y = 1.25, xend = 40, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.25, label = "Greater labour mobilisation", size = 5, fontface = "italic")  +
+  geom_textcurve(aes(x = 37.5, y = 1.4, xend = 37.5, yend = 1.01), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "              ", size = 5, fontface = "italic")  +
+  annotate(geom = "text", x=37.5, y= 1.2, label="Greater\nlabour\nmobilisation", colour = "black", size = 5, fontface = 'italic') +
   scale_colour_manual(values = c("#e41a1c", "#4daf4a", "#377eb8")) + 
   scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 42)) +
   scale_y_continuous(limits = c(1, 1.5)) + 
@@ -360,27 +381,27 @@ plot_b_sinuosity5b <- ggplot() +
   scale_fill_gradient(low = "#e41a1c", high = "white") +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicles difficult to ascend/descend directly") +
   new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
+  # geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
+  # scale_fill_gradient(low = "#377eb8", high = "white") +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicle can ascend/descend directly") +
   new_scale_fill() +
   geom_tile(data = b_sinuosity5_df3, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
   scale_fill_gradient(low = "#377eb8", high = "white") +
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Loaded wheeled vehicle drawn by two mules can ascend/descend directly") +
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
+  # geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
+  # geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
+  # geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
+  # geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
   geom_point(data = road_sims_posterior_b_sinuosity_median[road_sims_posterior_b_sinuosity_median$quadrant2 != "Uncertain",], aes(x = b, y = sinuosity, colour = quadrant2), size = 3.5, shape = 21, fill = NA, alpha = 1) +
-  geom_textcurve(aes(x = 3, y = 1.5, xend = 3, yend = 1.11), arrow = arrow(length = unit(0.03, "npc")), angle = 180, label = "                         ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=3, y= 1.305, label="Barriers to\nmovement\nother than\nslope gradient\novercome", colour = "black", size = 3, fontface = 'italic') +
-  geom_textcurve(aes(x = 7, y = 1.45, xend = 37, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 0, label = "Roads better facilitate wheeled vehicles", size = 3, fontface = "italic")  +
-  geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 135, label = "Economic motivation", size = 3, fontface = "italic")  +
-  geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.5, label = "Political motivation", size = 3, fontface = "italic")  +
-  geom_textcurve(aes(x = 37.5, y = 1.35, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "                     ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=37.5, y= 1.2, label="Increase in\ncost of construction\nand required\npolitical impetus", colour = "black", size = 3, fontface = 'italic') +
-  scale_colour_manual(values = c("#e41a1c", "#377eb8")) + 
-  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 40)) +
+  # geom_textcurve(aes(x = 3, y = 1.5, xend = 3, yend = 1.11), arrow = arrow(length = unit(0.03, "npc")), angle = 180, label = "                         ", size = 5, fontface = "italic")  +
+  # annotate(geom = "text", x=3.1, y= 1.305, label="Barriers to\nmovement\nother than\nslope gradient\novercome", colour = "black", size = 5, fontface = 'italic') +
+  geom_textcurve(aes(x = 7, y = 1.45, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 0, label = "Roads more readily facilitate wheeled vehicles", size = 5, fontface = "italic")  +
+  # geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 135, label = "Economic motivation", size = 5, fontface = "italic")  +
+  # geom_textcurve(aes(x = 7, y = 1.25, xend = 40, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.25, label = "Greater labour mobilisation", size = 5, fontface = "italic")  +
+  geom_textcurve(aes(x = 37.5, y = 1.4, xend = 37.5, yend = 1.01), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "              ", size = 5, fontface = "italic")  +
+  annotate(geom = "text", x=37.5, y= 1.2, label="Greater\nlabour\nmobilisation", colour = "black", size = 5, fontface = 'italic') +
+  scale_colour_manual(values = c("#e41a1c", "#4daf4a", "#377eb8")) + 
+  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 42)) +
   scale_y_continuous(limits = c(1, 1.5)) + 
   labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
   theme_clean() + 
@@ -388,126 +409,3 @@ plot_b_sinuosity5b <- ggplot() +
 
 ggplot2::ggsave(plot_b_sinuosity5b, filename = "./Output/figures/road_sims_post_b_sinuosity5b.png", dpi = 300, width = 10, height = 6)
 
-plot_b_sinuosity6 <- ggplot() + 
-  geom_tile(data = b_sinuosity5_df1, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#e41a1c", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicles difficult to ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#4daf4a", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicle can ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df3, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Loaded wheeled vehicle drawn by two mules can ascend/descend directly") +
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-#  geom_point(data = road_sims_posterior_b_sinuosity_median, aes(x = b, y = sinuosity, colour = quadrant), size = 3.5, shape = 21, fill = NA, alpha = 1) +
-  annotate(geom = "text", x=15, y= 1.02, label="Roads more likely given fewer topographic constraints that could cause the road to deviate from straightness", colour = "black", size = 3, fontface = 'italic') +
-  annotate(geom = "text", x=15.5, y= 1.375, label="Roads less likely given fewer topographic constraints that could cause the road to deviate from straightness", colour = "black", size = 3, fontface = 'italic') +
-  geom_textcurve(aes(x = 8, y = 1.2, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), curvature = 0.1, label = "                      ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=22.5, y= 1.09, label="Roads better\nfacilitate\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  scale_colour_manual(values = c("#e41a1c", "#4daf4a", "#377eb8")) + 
-  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 40)) +
-  scale_y_continuous(limits = c(1, 1.5)) + 
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
-  theme_clean() + 
-  theme(legend.position = "bottom", legend.justification = "right", legend.text=element_text(size=8))
-
-ggplot2::ggsave(plot_b_sinuosity6, filename = "./Output/figures/road_sims_post_b_sinuosity6.png", dpi = 300, width = 10, height = 6)
-
-plot_b_sinuosity6b <- ggplot() + 
-  geom_tile(data = b_sinuosity5_df1, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#e41a1c", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicles difficult to ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicle can ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df3, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Loaded wheeled vehicle drawn by two mules can ascend/descend directly") +
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  annotate(geom = "text", x=15, y= 1.02, label="Roads more likely given fewer topographic constraints that could cause the road to deviate from straightness", colour = "black", size = 3, fontface = 'italic') +
-  annotate(geom = "text", x=15.5, y= 1.375, label="Roads less likely given fewer topographic constraints that could cause the road to deviate from straightness", colour = "black", size = 3, fontface = 'italic') +
-  geom_textcurve(aes(x = 8, y = 1.2, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), curvature = 0.1, label = "                      ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=22.5, y= 1.09, label="Roads better\nfacilitate\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  scale_colour_manual(values = c("#e41a1c", "#377eb8")) + 
-  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 40)) +
-  scale_y_continuous(limits = c(1, 1.5)) + 
-  labs(x = NULL, y = "Sinuosity", colour = NULL) +
-  ggtitle("A") + 
-  theme_minimal() + 
-  theme(legend.position = "bottom", legend.justification = "right", legend.text=element_text(size=8))
-
-ggplot2::ggsave(plot_b_sinuosity6b, filename = "./Output/figures/road_sims_post_b_sinuosity6b.png", dpi = 300, width = 10, height = 6)
-
-plot_b_sinuosity7 <- ggplot() + 
-  geom_tile(data = b_sinuosity5_df1, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#e41a1c", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicles difficult to ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#4daf4a", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicle can ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df3, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Loaded wheeled vehicle drawn by two mules can ascend/descend directly") +
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-#  geom_point(data = road_sims_posterior_b_sinuosity_median, aes(x = b, y = sinuosity, colour = quadrant), size = 3.5, shape = 21, fill = NA, alpha = 1) +
-  annotate(geom = "text", x=3.35, y= 1.125, label="Roads less likely\ngiven a preference\n for faciliating\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  annotate(geom = "text", x=3.35, y= 1.375, label="Roads less likely\ngiven a preference\nfor straightness", colour = "black", size = 3, fontface = 'italic') +
-  geom_textcurve(aes(x = 8, y = 1.2, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), curvature = 0.1, label = "                      ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=22.5, y= 1.09, label="Roads better\nfacilitate\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  scale_colour_manual(values = c("#e41a1c", "#4daf4a", "#377eb8")) + 
-  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 40)) +
-  scale_y_continuous(limits = c(1, 1.5)) + 
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
-  theme_clean() + 
-  theme(legend.position = "bottom", legend.justification = "right", legend.text=element_text(size=8))
-
-ggplot2::ggsave(plot_b_sinuosity7, filename = "./Output/figures/road_sims_post_b_sinuosity7.png", dpi = 300, width = 10, height = 6)
-
-plot_b_sinuosity7b <- ggplot() + 
-  geom_tile(data = b_sinuosity5_df1, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#e41a1c", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicles difficult to ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df2, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Wheeled vehicle can ascend/descend directly") +
-  new_scale_fill() +
-  geom_tile(data = b_sinuosity5_df3, aes(x = x, y = y, fill = y), show.legend = FALSE) + 
-  scale_fill_gradient(low = "#377eb8", high = "white") +
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", fill = "Loaded wheeled vehicle drawn by two mules can ascend/descend directly") +
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 0, xmax = 6.7, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1, ymax = 1.25), fill = NA, colour = "white") + 
-  geom_rect(aes(xmin = 6.7, xmax = 40, ymin = 1.25, ymax = 1.5), fill = NA, colour = "white") + 
-  annotate(geom = "text", x=3.35, y= 1.125, label="Roads less likely\ngiven a preference\n for faciliating\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  annotate(geom = "text", x=3.35, y= 1.375, label="Roads less likely\ngiven a preference\nfor straightness", colour = "black", size = 3, fontface = 'italic') +
-  geom_textcurve(aes(x = 8, y = 1.2, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), curvature = 0.1, label = "                      ", size = 3, fontface = "italic")  +
-  annotate(geom = "text", x=22.5, y= 1.09, label="Roads better\nfacilitate\nwheeled vehicles", colour = "black", size = 3, fontface = 'italic') +
-  scale_colour_manual(values = c("#e41a1c", "#377eb8")) + 
-  scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 40)) +
-  scale_y_continuous(limits = c(1, 1.5)) + 
-  labs(x = "Median posterior estimate for rate of decline from maximum influence of slope gradient (parameter b)", y = "Sinuosity", colour = NULL) +
-  ggtitle("B") + 
-  theme_minimal() + 
-  theme(legend.position = "bottom", legend.justification = "right", legend.text=element_text(size=8))
-
-ggplot2::ggsave(plot_b_sinuosity7b, filename = "./Output/figures/road_sims_post_b_sinuosity7b.png", dpi = 300, width = 10, height = 6)
-
-plot_b_sinuosity67b <- plot_b_sinuosity6b / plot_b_sinuosity7b
-
-ggplot2::ggsave(plot_b_sinuosity67b, filename = "./Output/figures/road_sims_post_b_sinuosity67b.png", dpi = 300, width = 10, height = 12)
