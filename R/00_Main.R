@@ -22,8 +22,10 @@ options(scipen = 999)
 
 source("./R/Functions.R")
 
+# number of neighbours to use when calculating least-cost paths. This can be 4,8,16,32,48. But larger number increases both computational load and time
 neigh <- 8
 ncores <- 40
+# number of simulations to run for each Roman road
 nsims <- 250000
 # number of accepted values in the posterior. This should be less than nsims, i.e. the total number of values to simulate from.
 no_post_rows <- 250
