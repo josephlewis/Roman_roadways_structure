@@ -1,0 +1,62 @@
+﻿ID, Name,Type,NGR,First occupied,X,Y,Lat,Long
+3,Gloucester,Legionary Fortress,SO 832 195,pre-Flavian,383200,219500,51.873814,-2.2454309
+4,Usk,Legionary Fortress,SO 379 007,pre-Flavian,337900,200700,51.701591,-2.9000001
+5,Wroxeter,Legionary Fortress,SJ 566 085,pre-Flavian,356600,308500,52.672458,-2.6432698
+6,Abergavenny,Campaign base/Fort,SO 298 141,pre-Flavian,329800,214100,51.821095,-3.0199015
+23,Canon Frome/Stretton Grandison,Campaign base/Fort,SO 640 433,pre-Flavian,364000,243300,52.086872,-2.5268127
+24,Cardiff,Campaign base/Fort,ST 181 766,pre-Flavian,318100,176600,51.482402,-3.18082
+27,"Castlefield Farm, Kentchurch",Campaign base/Fort,SO 428 237,pre-Flavian,342800,223700,51.908883,-2.8329078
+28a,Clifford,Campaign base/Fort,SO 248 467,pre-Flavian,324800,246700,52.113488,-3.099581
+29,Clyro,Campaign base/Fort,SO 228 434,pre-Flavian,322800,243400,52.083549,-3.1280327
+35,Hindwel Farm,Campaign base/Fort,SO 258 606,pre-Flavian,325800,260600,52.238568,-3.0880258
+36,Jay Lane,Campaign base/Fort,SO 399 744,pre-Flavian,339900,274400,52.364341,-2.8840388
+37,Leighton,Campaign base/Fort,SJ 598 052,pre-Flavian,359800,305200,52.643041,-2.5955451
+43,Monmouth,Campaign base/Fort,SO 50 12,pre-Flavian,350000,212000,51.804393,-2.7265563
+51,Rhyn Park,Campaign base/Fort,SJ 305 370,pre-Flavian,330500,337000,52.925893,-3.0352689
+52,Stretford Bridge,Campaign base/Fort,SO 428 847,pre-Flavian,342800,284700,52.45724,-2.8432197
+55,Whitchurch,Campaign base/Fort,SJ 541 416,pre-Flavian,354100,341600,52.969781,-2.6849028
+1,Caerleon,Legionary Fortress,ST 339 906,,333900,190600,51.610334,-2.9559596
+1a,Bulmore,Legionary Fortress,ST 360 915,,336000,191500,51.618668,-2.9258021
+2,Chester,Legionary Fortress,SJ 405 664,,340500,366400,53.191343,-2.8919815
+2a,Holt,Legionary Fortress,SJ 405 545,,340500,354500,53.084387,-2.8897681
+2b,Heronbridge,Legionary Fortress,SJ 411 638,,341100,363800,53.168041,-2.8825227
+7,Blackbush Farm,Campaign base/Fort,SO 382 327,,338200,232700,51.989298,-2.9013893
+8,Brandon Camp,Campaign base/Fort,SO 401 724,,340100,272400,52.346385,-2.8807445
+9,Brecon Gaer,Campaign base/Fort,SO 002 297,,300200,229700,51.9568,-3.4537453
+10,Brompton/Pentrehyling,Campaign base/Fort,SO 247 931,,324700,293100,52.530542,-3.1114456
+11,Bryn y Gefeiliau (Caer Llugwy),Campaign base/Fort,SH 7460 5725,,274600,357250,53.097674,-3.8742832
+12,Buckton,Campaign base/Fort,SO 390 733,,339000,273300,52.354354,-2.8970539
+13,Cae Gaer,Campaign base/Fort,SN 824 818,,282400,281800,52.421505,-3.7307552
+14,Caerau (Beulah),Campaign base/Fort,SN 923 502,,292300,250200,52.139562,-3.5751317
+15,Caer Gai,Campaign base/Fort,SH 8775 3148,,287750,331480,52.869051,-3.6690352
+16,Caergwanaf,Campaign base/Fort,ST 044 807,,304400,180700,51.517104,-3.3791667
+17,Caer Gybi,Campaign base/Fort,SH 2472 8262,,224720,382620,53.311427,-4.6324338
+18,Caerhun,Campaign base/Fort,SH 7763 7037,,277630,370370,53.216252,-3.8340755
+19,Caernarfon,Campaign base/Fort,SH 485 625,,248500,362500,53.138055,-4.2662584
+20,Caerphilly,Campaign base/Fort,ST 1538 8729,,315380,187290,51.578097,-3.2225529
+21,Caersws I (Llwyn-y-brain),Campaign base/Fort,SO 041 926,,304100,292600,52.522808,-3.4148807
+22,Caersws II,Campaign base/Fort,SO 029 920,,302900,292000,52.517203,-3.4323859
+25,Carmarthen,Campaign base/Fort,SN 415 201,,241500,220100,51.856917,-4.3029482
+26,Castell Collen,Campaign base/Fort,SO 055 628,,305500,262800,52.255227,-3.3858369
+28b,"Whitehouse Farm, Clifford",Campaign base/Fort,SO 249 458,,324900,245800,52.105412,-3.0979221
+30,Coelbren,Campaign base/Fort,SN 859 107,,285900,210700,51.783291,-3.6554732
+31,Colwyn Castle,Campaign base/Fort,SO 1075 5396,,310750,253960,52.17665,-3.3066129
+32,Credenhill,Campaign base/Fort,SO 451 446,,345100,244600,52.097002,-2.8028326
+33,Forden Gaer,Campaign base/Fort,SO 208 989,,320800,298900,52.582118,-3.1703105
+34a,Gelligaer I,Campaign base/Fort,ST 133 972,,313300,197200,51.666863,-3.2550179
+34b,Gelligaer II,Campaign base/Fort,ST 134 970,,313400,197000,51.66508,-3.2535227
+38,Llandeilo,Campaign base/Fort,SN 620 225,,262000,222500,51.883932,-4.0064439
+39,Llandovery,Campaign base/Fort,SN 799 352,,279900,235200,52.002208,-3.7509508
+40,Llanfor,Campaign base/Fort,SH 9377 3612,,293770,336120,52.911969,-3.581157
+41,Llanio,Campaign base/Fort,SN 644 564,,264400,256400,52.189122,-3.9850484
+42,Loughor,Campaign base/Fort,SS 5634 9798,,256340,197980,51.662187,-4.0784711
+44,Neath,Campaign base/Fort,SS 7470 9760,,274700,197600,51.663169,-3.8130349
+45,Pen-Llwyn ,Campaign base/Fort,SN 650 806,,265000,280600,52.406703,-3.9859844
+46,Pen Llystyn,Campaign base/Fort,SH 481 449,,248100,344900,52.979857,-4.2639256
+47,Pennal (Cefn Caer),Campaign base/Fort,SH 7049 0008,,270490,300080,52.583057,-3.9129125
+48,Penydarren,Campaign base/Fort,SO 050 068,,305000,206800,51.751809,-3.3776139
+49,Pen y Gaer,Campaign base/Fort,SO 1686 2195,,316860,221950,51.88988,-3.2094911
+50,Pumsaint,Campaign base/Fort,SN 656 406,,265600,240600,52.047449,-3.9612615
+53,Tomen y Mur,Campaign base/Fort,SH 707 388,,270700,338800,52.930987,-3.9250991
+54,Trawscoed,Campaign base/Fort,SN 671 727,,267100,272700,52.336236,-3.9519999
+56,Wonastow,Campaign base/Fort,SO 485 111,,348500,211100,51.796165,-2.748175
