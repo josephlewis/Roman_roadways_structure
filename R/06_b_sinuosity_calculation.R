@@ -368,9 +368,9 @@ plot_b_sinuosity5 <- ggplot() +
   # annotate(geom = "text", x=3.1, y= 1.305, label="Barriers to\nmovement\nother than\nslope gradient\novercome", colour = "black", size = 5, fontface = 'italic') +
   geom_textcurve(aes(x = 7, y = 1.45, xend = 37, yend = 1.45), arrow = arrow(length = unit(0.03, "npc")), angle = 0, label = "Roads more readily facilitate wheeled vehicles", size = 5, fontface = "italic")  +
   geom_textcurve(aes(x = 7, y = 1.1, xend = 36, yend = 1.4), arrow = arrow(length = unit(0.03, "npc")), angle = 135, label = "Economic motivation", size = 5, fontface = "italic")  +
-  geom_textcurve(aes(x = 7, y = 1.1, xend = 37.5, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.25, label = "Political motivation", size = 5, fontface = "italic")  +
-  geom_textcurve(aes(x = 37.5, y = 1.4, xend = 37.5, yend = 1.01), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "              ", size = 5, fontface = "italic")  +
-  annotate(geom = "text", x=37.5, y= 1.2, label="\nIncrease in\nconstruction cost\nand required\npolitical impetus\n              ", colour = "black", size = 5, fontface = 'italic') +
+  geom_textcurve(aes(x = 7, y = 1.1, xend = 36, yend = 1.05), arrow = arrow(length = unit(0.03, "npc")), angle = 190, curvature = -0.5, label = "Political motivation", size = 5, fontface = "italic")  +
+  geom_textcurve(aes(x = 37.5, y = 1.4, xend = 37.5, yend = 1.01), arrow = arrow(length = unit(0.03, "npc")), angle = 0, curvature = -0.5, label = "                 ", size = 5, fontface = "italic")  +
+  annotate(geom = "text", x=37.5, y= 1.17, label="\nIncrease in\nconstruction cost\nand required\npolitical impetus\n", colour = "black", size = 4, fontface = 'italic') +
   scale_colour_manual(values = c("#e41a1c", "#4daf4a", "#377eb8")) + 
   scale_x_continuous(breaks = seq(0, 40, 5), limits = c(0, 42)) +
   scale_y_continuous(limits = c(1, 1.5)) + 
