@@ -1,6 +1,5 @@
 # Generative inference model reveals motivations for road construction in past societies
 
-
 This repository contains all the data and scripts required to fully reproduce all analyses presented in the paper "_Generative inference model reveals motivations for road construction in past societies_" authored by **Lewis**, J and Crema, E.R.
 
 Getting Started
@@ -15,13 +14,26 @@ Getting Started
    * _05_analyse_ABC_RR_known.R_ produces summary tables and figures for the Roman roads in Wales study
    * _06_b_sinuosity_calculation.R_ calculate sinuosity of simulated Roman roads and relate this to the influence of slope gradient (parameter b). Produce figures for the unified framework
    * _07_b_critical_gradient_slope.R_ produces plot to show relationship between parameter b and critical slope gradient
+   * _08_prep_Figure1.R_ preprocessing of the GMTED2010 DEM for the 'Roman Empire' map, Figure 1
 
 **Data**
 1. DEM
   * _OS_50m_Wales.tif_ - Ordnance Survey 50 metres Digital Elevation Model of Wales
+  * _RE_dem.tif_ - GMTED2010 DEM cropped to the 'Roman Empire' extent
+  * _OS_50m_Wales_RR17.tif_ - _OS_50m_Wales.tif cropped to 'Roman road 17'
+  * _OS_50m_Wales_RR20.tif_ - _OS_50m_Wales.tif cropped to 'Roman road 20'
+  * _OS_50m_Wales_RR43.tif_ - _OS_50m_Wales.tif cropped to 'Roman road 43'
 2. extent
   * _roman_empire_ad_117.gpkg_ - Extent of the Roman empire.
-2. _RR_known.gpkg_ - 62 Known Roman roads digitised from 'Roman frontiers in Wales and the Marches’
+  * _roman_empire_ad_117_combined.gpkg_ - Extent of the Roman empire. Unionised to remove province boundaries
+  * _roman_wales_extent.gpkg_ - Extent of the study region
+3. _RR_known.gpkg_ - 62 Known Roman roads digitised from 'Roman frontiers in Wales and the Marches’
+4. _RR17_known.gpkg_ - Known Roman road 17
+5. _RR20_known.gpkg_ - Known Roman road 20
+6. _RR43_known.gpkg_ - Known Roman road 43
+7. Sites
+  * _roman_road_locs.gpkg_ - locations of Roman roads in the Roman Empire mentioned in text
+  * _Sites_Wales.csv_ - locations of Roman fortresses/forts in Wales
 
 **Output**
 1. tactical_simuation
