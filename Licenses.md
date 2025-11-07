@@ -1,4 +1,4 @@
-# Estimating the Scale-Dependent Influence of Natural Terrestrial Corridors on the Positioning of Settlements: A Multi-Scale Study of Roman Forts in Wales
+# Generative inference model reveals motivations for road construction in past societies
 
 Licenses
 ---------------
