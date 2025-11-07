@@ -1,0 +1,4 @@
+DEM_dem.tif was derived from:
+* GMTED2010 (30 arc-second resolution, ~1km)
+
+See 08_prep_Figure1.R for preprocessing code
